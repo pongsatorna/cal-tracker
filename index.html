@@ -577,15 +577,10 @@ function renderRing(){
   const offset = CIRC - pct*CIRC;
   const ring = document.getElementById('ring-fill');
   ring.style.strokeDasharray = CIRC;
-  // B10: animate from 12 o'clock — but only if position actually changed
-  const prevOffset = parseFloat(ring.style.strokeDashoffset) || CIRC;
-  if(Math.abs(prevOffset - offset) > 0.5){
-    ring.style.transition = 'none';
-    ring.style.strokeDashoffset = CIRC;
-    requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ ring.style.transition = ''; ring.style.strokeDashoffset = offset; }); });
-  } else {
-    ring.style.strokeDashoffset = offset;
-  }
+  // B10: always animate from 12 o'clock
+  ring.style.transition = 'none';
+  ring.style.strokeDashoffset = CIRC;
+  requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ ring.style.transition = ''; ring.style.strokeDashoffset = offset; }); });
   // B4: red if over target, blue (out cal color) if under
   if(current > target) ring.style.stroke = 'var(--danger)';
   else if(current > 0) ring.style.stroke = 'var(--carbs)';
@@ -628,9 +623,10 @@ function renderMacros(){
     const tgt = targets[key] || 1;
     const pct = Math.max(0, Math.min(100, (val/tgt)*100));
     // B11: animate from 0 to target width
-    row.querySelector('.bar-fill').style.width = '0%';
-    void row.querySelector('.bar-fill').offsetWidth;
-    row.querySelector('.bar-fill').style.width = pct+'%';
+    const bar = row.querySelector('.bar-fill');
+    bar.style.transition = 'none';
+    bar.style.width = '0%';
+    requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ bar.style.transition = ''; bar.style.width = pct+'%'; }); });
     row.querySelector('.val').textContent = state.unit === 'g'
       ? `${Math.round(val)} / ${Math.round(tgt)} g`
       : `${Math.round((val/tgt)*100)}%`;
