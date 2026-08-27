@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14171C;
+    --surface:#1E2229;
+    --surface-2:#262B33;
+    --line:#31363F;
+    --text:#F5F3EE;
+    --text-muted:#8B92A0;
+    --text-faint:#565D6B;
+    --hot:#FF6B4A;
+    --amber:#FFB627;
+    --protein:#4ADE80;
+    --carbs:#60A5FA;
+    --fat:#F472B6;
+    --danger:#FF4D6D;
+    --radius:18px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:'Manrope',sans-serif; -webkit-font-smoothing:antialiased;}
+  body{min-height:100vh; padding-bottom:48px;}
+  .display{font-family:'Bebas Neue',sans-serif; letter-spacing:0.5px;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  a,button{font-family:inherit;}
+
+  .app{max-width:480px; margin:0 auto; padding:20px 18px 0;}
+
+  /* ---------- Header ---------- */
+  .header{display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:22px;}
+  .header .eyebrow{color:var(--text-faint); font-size:12px; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 2px;}
+  .header .date{font-size:32px; margin:0; line-height:1;}
+  .gear-btn{width:42px; height:42px; border-radius:50%; background:var(--surface);
+    border:1px solid var(--line); display:flex; align-items:center; justify-content:center;
+    color:var(--text-muted); cursor:pointer; flex-shrink:0;}
+  .gear-btn:active{background:var(--surface-2);}
+  .gear-btn svg{width:20px; height:20px;}
+
+  /* ---------- Week strip ---------- */
+  .week-row{display:flex; align-items:center; gap:8px; margin-bottom:22px;}
+  .week-strip{display:flex; flex:1; gap:6px; overflow:hidden;}
+  .day-pill{flex:1; display:flex; flex-direction:column; align-items:center; gap:6px;
+    padding:10px 0 8px; border-radius:14px; background:var(--surface); border:1px solid transparent;
+    cursor:pointer; position:relative;}
+  .day-pill .dow{font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:1px;}
+  .day-pill .num{font-family:'Bebas Neue',sans-serif; font-size:18px; color:var(--text-muted);}
+  .day-pill.today{border-color:var(--amber);}
+  .day-pill.today .num{color:var(--amber);}
+  .day-pill.selected{background:linear-gradient(155deg, var(--hot), var(--amber));}
+  .day-pill.selected .dow,.day-pill.selected .num{color:#14171C;}
+  .day-pill.disabled{opacity:0.35; pointer-events:none;}
+  .day-pill .dot{width:4px; height:4px; border-radius:50%; background:var(--hot); position:absolute; bottom:4px;}
+  .day-pill.selected .dot{background:#14171C;}
+  .cal-btn{width:38px; height:38px; border-radius:12px; background:var(--surface);
+    border:1px solid var(--line); display:flex; align-items:center; justify-content:center;
+    color:var(--text-muted); cursor:pointer; flex-shrink:0;}
+  .cal-btn svg{width:17px; height:17px;}
+
+  /* ---------- Ring card ---------- */
+  .card{background:var(--surface); border-radius:var(--radius); padding:22px 18px; margin-bottom:16px; border:1px solid var(--line);}
+  .ring-section{display:flex; align-items:center; gap:18px;}
+  .ring-wrap{position:relative; width:150px; height:150px; flex-shrink:0;}
+  .ring-wrap svg{width:100%; height:100%; transform:rotate(-90deg);}
+  .ring-center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .ring-center .big{font-family:'Bebas Neue',sans-serif; font-size:38px; line-height:1;}
+  .ring-center .unit{font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:1px; margin-top:2px;}
+  .ring-center .of{font-size:11px; color:var(--text-muted); margin-top:4px;}
+
+  .macro-list{flex:1; display:flex; flex-direction:column; gap:12px;}
+  .macro-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;}
+  .macro-head .lbl{font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:1px;}
+  .unit-toggle{display:flex; background:var(--surface-2); border-radius:999px; padding:2px; gap:2px;}
+  .unit-toggle button{border:none; background:transparent; color:var(--text-faint); font-size:10px;
+    padding:4px 9px; border-radius:999px; cursor:pointer; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;}
+  .unit-toggle button.active{background:var(--text); color:var(--bg);}
+
+  .macro-row{display:flex; flex-direction:column; gap:4px;}
+  .macro-row .top{display:flex; justify-content:space-between; font-size:12px;}
+  .macro-row .name{color:var(--text-muted); font-weight:600;}
+  .macro-row .val{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text);}
+  .bar-track{height:6px; border-radius:99px; background:var(--surface-2); overflow:hidden;}
+  .bar-fill{height:100%; border-radius:99px;}
+
+  /* ---------- Latest log ---------- */
+  .section-title{font-size:12px; color:var(--text-faint); text-transform:uppercase; letter-spacing:1.5px; margin:26px 2px 12px;}
+  .log-item{display:flex; align-items:center; gap:12px; padding:13px 4px; border-bottom:1px solid var(--line);}
+  .log-item:last-child{border-bottom:none;}
+  .log-icon{width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .log-icon.in{background:rgba(255,107,74,0.14); color:var(--hot);}
+  .log-icon.out{background:rgba(96,165,250,0.14); color:var(--carbs);}
+  .log-icon svg{width:18px; height:18px;}
+  .log-body{flex:1; min-width:0;}
+  .log-name{font-size:13.5px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .log-meta{font-size:11px; color:var(--text-faint); margin-top:2px;}
+  .log-cal{font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:600; flex-shrink:0;}
+  .log-cal.out{color:var(--carbs);}
+  .empty-state{padding:30px 4px; text-align:center; color:var(--text-faint); font-size:13px;}
+
+  /* ---------- Modal: month picker ---------- */
+  .overlay{position:fixed; inset:0; background:rgba(10,11,14,0.72); backdrop-filter:blur(3px);
+    display:flex; align-items:flex-end; justify-content:center; z-index:50; opacity:0; pointer-events:none; transition:opacity .18s;}
+  .overlay.open{opacity:1; pointer-events:auto;}
+  .sheet{background:var(--surface); width:100%; max-width:480px; border-radius:22px 22px 0 0;
+    padding:20px 18px 28px; transform:translateY(16px); transition:transform .2s;}
+  .overlay.open .sheet{transform:translateY(0);}
+  .sheet-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+  .sheet-head .mtitle{font-family:'Bebas Neue',sans-serif; font-size:22px;}
+  .nav-btn{width:32px; height:32px; border-radius:9px; background:var(--surface-2); border:none; color:var(--text-muted); cursor:pointer;}
+  .month-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
+  .month-grid .dow{text-align:center; font-size:10px; color:var(--text-faint); padding-bottom:6px; text-transform:uppercase;}
+  .month-cell{aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:10px;
+    font-size:13px; color:var(--text); cursor:pointer; position:relative;}
+  .month-cell.blank{cursor:default;}
+  .month-cell.disabled{color:var(--text-faint); opacity:0.3; pointer-events:none;}
+  .month-cell.avail::after{content:''; width:3px; height:3px; border-radius:50%; background:var(--hot); position:absolute; bottom:5px;}
+  .month-cell.today{border:1px solid var(--amber);}
+  .month-cell.selected{background:linear-gradient(155deg, var(--hot), var(--amber)); color:#14171C; font-weight:700;}
+
+  /* ---------- Settings view ---------- */
+  .settings-view{position:fixed; inset:0; background:var(--bg); z-index:60; transform:translateX(100%); transition:transform .22s ease;}
+  .settings-view.open{transform:translateX(0);}
+  .settings-inner{max-width:480px; margin:0 auto; padding:20px 18px;}
+  .settings-head{display:flex; align-items:center; gap:14px; margin-bottom:26px;}
+  .back-btn{width:38px; height:38px; border-radius:11px; background:var(--surface); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; color:var(--text-muted); cursor:pointer;}
+  .back-btn svg{width:18px; height:18px;}
+  .settings-head h1{font-family:'Bebas Neue',sans-serif; font-size:26px; margin:0;}
+  .field{margin-bottom:18px;}
+  .field label{display:block; font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:1px; margin-bottom:7px;}
+  .field input{width:100%; background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    padding:13px 14px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:16px;}
+  .field input:focus{outline:none; border-color:var(--amber);}
+  .save-btn{width:100%; padding:15px; border:none; border-radius:14px; margin-top:10px;
+    background:linear-gradient(155deg, var(--hot), var(--amber)); color:#14171C; font-weight:800;
+    font-size:14px; letter-spacing:0.5px; text-transform:uppercase; cursor:pointer;}
+  .save-btn:active{opacity:0.85;}
+  .save-msg{text-align:center; font-size:12px; color:var(--protein); margin-top:12px; min-height:16px;}
+
+  .toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--surface-2); border:1px solid var(--line); padding:11px 18px; border-radius:12px;
+    font-size:12.5px; color:var(--text); opacity:0; transition:all .25s; z-index:80; pointer-events:none;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  ::-webkit-scrollbar{display:none;}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div>
+      <p class="eyebrow" id="dow-label">Today</p>
+      <p class="date display" id="date-label">—</p>
+    </div>
+    <button class="gear-btn" id="gear-btn" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    </button>
+  </div>
+
+  <div class="week-row">
+    <div class="week-strip" id="week-strip"></div>
+    <button class="cal-btn" id="cal-btn" aria-label="Pick a date">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="ring-section">
+      <div class="ring-wrap">
+        <svg viewBox="0 0 150 150">
+          <defs>
+            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FF6B4A"/>
+              <stop offset="100%" stop-color="#FFB627"/>
+            </linearGradient>
+          </defs>
+          <circle cx="75" cy="75" r="64" fill="none" stroke="#262B33" stroke-width="12"/>
+          <g id="tick-group"></g>
+          <circle id="ring-fill" cx="75" cy="75" r="64" fill="none" stroke="url(#ringGrad)"
+            stroke-width="12" stroke-linecap="round" stroke-dasharray="402" stroke-dashoffset="402"/>
+        </svg>
+        <div class="ring-center">
+          <div class="big mono" id="cal-current">0</div>
+          <div class="unit">kcal</div>
+          <div class="of" id="cal-target-label">of 0</div>
+        </div>
+      </div>
+
+      <div class="macro-list">
+        <div class="macro-head">
+          <span class="lbl">Nutrients</span>
+          <div class="unit-toggle">
+            <button id="toggle-g" class="active">g</button>
+            <button id="toggle-pct">%</button>
+          </div>
+        </div>
+        <div class="macro-row" data-macro="protein">
+          <div class="top"><span class="name" style="color:var(--protein)">Protein</span><span class="val"></span></div>
+          <div class="bar-track"><div class="bar-fill" style="background:var(--protein)"></div></div>
+        </div>
+        <div class="macro-row" data-macro="carbs">
+          <div class="top"><span class="name" style="color:var(--carbs)">Carbs</span><span class="val"></span></div>
+          <div class="bar-track"><div class="bar-fill" style="background:var(--carbs)"></div></div>
+        </div>
+        <div class="macro-row" data-macro="fat">
+          <div class="top"><span class="name" style="color:var(--fat)">Fat</span><span class="val"></span></div>
+          <div class="bar-track"><div class="bar-fill" style="background:var(--fat)"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="section-title">Latest log</p>
+  <div class="card" id="log-list" style="padding:6px 14px;">
+    <div class="empty-state">Loading…</div>
+  </div>
+</div>
+
+<!-- Month picker -->
+<div class="overlay" id="month-overlay">
+  <div class="sheet">
+    <div class="sheet-head">
+      <button class="nav-btn" id="month-prev">‹</button>
+      <span class="mtitle" id="month-title">—</span>
+      <button class="nav-btn" id="month-next">›</button>
+    </div>
+    <div class="month-grid" id="month-grid"></div>
+  </div>
+</div>
+
+<!-- Settings -->
+<div class="settings-view" id="settings-view">
+  <div class="settings-inner">
+    <div class="settings-head">
+      <button class="back-btn" id="settings-back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <h1>Set target</h1>
+    </div>
+    <div class="field"><label>Calories (kcal)</label><input type="number" id="in-calories"></div>
+    <div class="field"><label>Protein (g)</label><input type="number" id="in-protein"></div>
+    <div class="field"><label>Carbs (g)</label><input type="number" id="in-carbs"></div>
+    <div class="field"><label>Fat (g)</label><input type="number" id="in-fat"></div>
+    <button class="save-btn" id="save-target-btn">Save target</button>
+    <div class="save-msg" id="save-msg"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ CONFIG ============ */
+// Both values can be set once via URL query params and are then cached
+// in localStorage, so you never need to hand-edit this file again —
+// even if you create a brand new Apps Script deployment later.
+//
+// First visit:
+//   yoursite.com/?token=YOUR_TOKEN&api=https://script.google.com/macros/s/xxx/exec
+// Every visit after that, both params are optional — the cached values
+// are used automatically.
+const qs = new URLSearchParams(location.search);
+
+const TOKEN = qs.get('token') || localStorage.getItem('cal_token') || '';
+if (qs.get('token')) localStorage.setItem('cal_token', qs.get('token'));
+
+const GAS_URL = qs.get('api') || localStorage.getItem('cal_api') || '';
+if (qs.get('api')) localStorage.setItem('cal_api', qs.get('api'));
+
+if (!TOKEN || !GAS_URL) {
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('log-list').innerHTML =
+      '<div class="empty-state">Missing setup — open this page once with '
+      + '<span class="mono">?token=...&api=...</span> in the URL to configure it.</div>';
+  });
+}
+
+/* ============ STATE ============ */
+let state = {
+  selectedDate: todayStr(),
+  today: todayStr(),
+  availability: new Set(),
+  unit: 'g',            // 'g' | 'pct'
+  monthCursor: new Date(),
+  dayData: null
+};
+
+/* ============ HELPERS ============ */
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+}
+function pad(n){ return n<10 ? '0'+n : ''+n; }
+function parseDate(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function toKey(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function mondayOf(d){
+  const day = d.getDay(); // 0=Sun..6=Sat
+  const diff = (day===0? -6 : 1-day);
+  const m = new Date(d); m.setDate(d.getDate()+diff);
+  return m;
+}
+function showToast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+async function api(params){
+  const url = new URL(GAS_URL);
+  url.searchParams.set('token', TOKEN);
+  Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
+  const res = await fetch(url.toString());
+  return res.json();
+}
+
+/* ============ INIT ============ */
+async function init(){
+  try{
+    const avail = await api({ action:'availability' });
+    (avail.dates||[]).forEach(d => state.availability.add(d));
+  }catch(e){ console.error(e); }
+  state.availability.add(state.today); // today always selectable
+  renderWeekStrip();
+  await loadDay(state.selectedDate);
+}
+
+async function loadDay(dateStr){
+  state.selectedDate = dateStr;
+  renderWeekStrip();
+  renderHeader();
+  const el = document.getElementById('log-list');
+  el.innerHTML = '<div class="empty-state">Loading…</div>';
+  try{
+    const data = await api({ action:'data', date: dateStr });
+    state.dayData = data;
+    renderRing();
+    renderMacros();
+    renderLogList();
+  }catch(e){
+    el.innerHTML = '<div class="empty-state">Could not load — check your connection.</div>';
+  }
+}
+
+/* ============ HEADER ============ */
+function renderHeader(){
+  const d = parseDate(state.selectedDate);
+  const isToday = state.selectedDate === state.today;
+  document.getElementById('dow-label').textContent = isToday ? 'Today' :
+    d.toLocaleDateString('en-US',{weekday:'long'});
+  document.getElementById('date-label').textContent =
+    d.toLocaleDateString('en-US',{month:'long', day:'numeric', year:'numeric'});
+}
+
+/* ============ WEEK STRIP ============ */
+function renderWeekStrip(){
+  const strip = document.getElementById('week-strip');
+  strip.innerHTML = '';
+  const monday = mondayOf(parseDate(state.selectedDate));
+  const dows = ['M','T','W','T','F','S','S'];
+  for(let i=0;i<7;i++){
+    const d = new Date(monday); d.setDate(monday.getDate()+i);
+    const key = toKey(d);
+    const isToday = key === state.today;
+    const isSelected = key === state.selectedDate;
+    const hasData = state.availability.has(key);
+    const pill = document.createElement('div');
+    pill.className = 'day-pill'
+      + (isToday? ' today':'') + (isSelected? ' selected':'') + (!hasData? ' disabled':'');
+    pill.innerHTML = `<span class="dow">${dows[i]}</span><span class="num">${d.getDate()}</span>`
+      + (hasData && !isSelected ? '<span class="dot"></span>' : '');
+    if(hasData){
+      pill.addEventListener('click', ()=> loadDay(key));
+    }
+    strip.appendChild(pill);
+  }
+}
+
+/* ============ RING ============ */
+const CIRC = 2*Math.PI*64;
+function renderRing(){
+  const t = state.dayData.totals;
+  const targets = state.dayData.targets;
+  const current = Math.round(t.netCalories);
+  const target = targets.calories || 1;
+  const pct = Math.max(0, Math.min(1, current/target));
+  const offset = CIRC - pct*CIRC;
+  const ring = document.getElementById('ring-fill');
+  ring.style.strokeDasharray = CIRC;
+  ring.style.strokeDashoffset = offset;
+  ring.style.stroke = current > target ? 'var(--danger)' : 'url(#ringGrad)';
+
+  document.getElementById('cal-current').textContent = current;
+  document.getElementById('cal-target-label').textContent = 'of '+Math.round(target);
+
+  // ticks every 10%
+  const tickGroup = document.getElementById('tick-group');
+  tickGroup.innerHTML = '';
+  for(let i=0;i<20;i++){
+    const angle = (i/20)*2*Math.PI;
+    const r1=57, r2=64;
+    const x1=75+r1*Math.cos(angle), y1=75+r1*Math.sin(angle);
+    const x2=75+r2*Math.cos(angle), y2=75+r2*Math.sin(angle);
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',x1); line.setAttribute('y1',y1);
+    line.setAttribute('x2',x2); line.setAttribute('y2',y2);
+    line.setAttribute('stroke', '#31363F'); line.setAttribute('stroke-width','1.5');
+    tickGroup.appendChild(line);
+  }
+}
+
+/* ============ MACROS ============ */
+function renderMacros(){
+  const t = state.dayData.totals;
+  const targets = state.dayData.targets;
+  ['protein','carbs','fat'].forEach(key=>{
+    const row = document.querySelector(`.macro-row[data-macro="${key}"]`);
+    const val = t[key] || 0;
+    const tgt = targets[key] || 1;
+    const pct = Math.max(0, Math.min(100, (val/tgt)*100));
+    row.querySelector('.bar-fill').style.width = pct+'%';
+    row.querySelector('.val').textContent = state.unit === 'g'
+      ? `${Math.round(val)} / ${Math.round(tgt)} g`
+      : `${Math.round((val/tgt)*100)}%`;
+  });
+}
+document.getElementById('toggle-g').addEventListener('click', ()=>{
+  state.unit='g'; syncUnitButtons(); renderMacros();
+});
+document.getElementById('toggle-pct').addEventListener('click', ()=>{
+  state.unit='pct'; syncUnitButtons(); renderMacros();
+});
+function syncUnitButtons(){
+  document.getElementById('toggle-g').classList.toggle('active', state.unit==='g');
+  document.getElementById('toggle-pct').classList.toggle('active', state.unit==='pct');
+}
+
+/* ============ LOG LIST ============ */
+const inIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2v20M6 2a4 4 0 014 4v4a4 4 0 01-4 4M18 2v20M18 8a3 3 0 00-3 3v0a3 3 0 003 3"/></svg>';
+const outIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h7l-1 8 11-14h-7l0-6z"/></svg>';
+
+function renderLogList(){
+  const el = document.getElementById('log-list');
+  const logs = state.dayData.logs;
+  if(!logs.length){
+    el.innerHTML = '<div class="empty-state">Nothing logged yet. Send a photo or tell your skill what you ate.</div>';
+    return;
+  }
+  const sorted = [...logs].sort((a,b)=> b.time.localeCompare(a.time));
+  el.innerHTML = sorted.map(r=>{
+    const isOut = r.type === 'Out';
+    return `<div class="log-item">
+      <div class="log-icon ${isOut?'out':'in'}">${isOut?outIcon:inIcon}</div>
+      <div class="log-body">
+        <div class="log-name">${escapeHtml(r.item)}</div>
+        <div class="log-meta">${r.time}${r.method? ' · '+r.method:''}</div>
+      </div>
+      <div class="log-cal ${isOut?'out':''}">${isOut?'-':''}${Math.round(r.calories)}</div>
+    </div>`;
+  }).join('');
+}
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+
+/* ============ MONTH PICKER ============ */
+const calBtn = document.getElementById('cal-btn');
+const monthOverlay = document.getElementById('month-overlay');
+calBtn.addEventListener('click', ()=>{
+  state.monthCursor = parseDate(state.selectedDate);
+  renderMonth();
+  monthOverlay.classList.add('open');
+});
+monthOverlay.addEventListener('click', (e)=>{ if(e.target===monthOverlay) monthOverlay.classList.remove('open'); });
+document.getElementById('month-prev').addEventListener('click', ()=>{
+  state.monthCursor = new Date(state.monthCursor.getFullYear(), state.monthCursor.getMonth()-1, 1);
+  renderMonth();
+});
+document.getElementById('month-next').addEventListener('click', ()=>{
+  state.monthCursor = new Date(state.monthCursor.getFullYear(), state.monthCursor.getMonth()+1, 1);
+  renderMonth();
+});
+
+function renderMonth(){
+  const cursor = state.monthCursor;
+  document.getElementById('month-title').textContent =
+    cursor.toLocaleDateString('en-US',{month:'long', year:'numeric'});
+  const grid = document.getElementById('month-grid');
+  grid.innerHTML = '';
+  ['M','T','W','T','F','S','S'].forEach(d=>{
+    const el=document.createElement('div'); el.className='dow'; el.textContent=d; grid.appendChild(el);
+  });
+  const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+  const startOffset = (first.getDay()+6)%7; // Monday-start
+  const daysInMonth = new Date(cursor.getFullYear(), cursor.getMonth()+1, 0).getDate();
+
+  for(let i=0;i<startOffset;i++){
+    const b=document.createElement('div'); b.className='month-cell blank'; grid.appendChild(b);
+  }
+  for(let day=1; day<=daysInMonth; day++){
+    const d = new Date(cursor.getFullYear(), cursor.getMonth(), day);
+    const key = toKey(d);
+    const hasData = state.availability.has(key);
+    const cell = document.createElement('div');
+    cell.className = 'month-cell'
+      + (hasData? ' avail':' disabled')
+      + (key===state.today? ' today':'')
+      + (key===state.selectedDate? ' selected':'');
+    cell.textContent = day;
+    if(hasData){
+      cell.addEventListener('click', ()=>{
+        monthOverlay.classList.remove('open');
+        loadDay(key);
+      });
+    }
+    grid.appendChild(cell);
+  }
+}
+
+/* ============ SETTINGS ============ */
+const settingsView = document.getElementById('settings-view');
+document.getElementById('gear-btn').addEventListener('click', async ()=>{
+  settingsView.classList.add('open');
+  const targets = (state.dayData && state.dayData.targets) || {};
+  document.getElementById('in-calories').value = targets.calories || '';
+  document.getElementById('in-protein').value = targets.protein || '';
+  document.getElementById('in-carbs').value = targets.carbs || '';
+  document.getElementById('in-fat').value = targets.fat || '';
+});
+document.getElementById('settings-back').addEventListener('click', ()=> settingsView.classList.remove('open'));
+
+document.getElementById('save-target-btn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('save-target-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try{
+    const res = await api({
+      action: 'saveTarget',
+      calories: document.getElementById('in-calories').value,
+      protein: document.getElementById('in-protein').value,
+      carbs: document.getElementById('in-carbs').value,
+      fat: document.getElementById('in-fat').value
+    });
+    if(res.success){
+      document.getElementById('save-msg').textContent = 'Saved.';
+      showToast('Target updated');
+      await loadDay(state.selectedDate);
+    } else {
+      document.getElementById('save-msg').textContent = 'Something went wrong.';
+    }
+  }catch(e){
+    document.getElementById('save-msg').textContent = 'Could not save — check your connection.';
+  }
+  btn.disabled = false; btn.textContent = 'Save target';
+});
+
+init();
+</script>
+</body>
+</html>
