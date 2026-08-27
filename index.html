@@ -4,12 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Log</title>
+
+<!-- Icons -->
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14171C">
+<!-- iOS-specific: makes "Add to Home Screen" open standalone (no browser chrome) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Log">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#14171C;
-    --surface:#1E2229; 
+    --surface:#1E2229;
     --surface-2:#262B33;
     --line:#31363F;
     --text:#F5F3EE;
@@ -257,29 +269,10 @@
 
 <script>
 /* ============ CONFIG ============ */
-// Both values can be set once via URL query params and are then cached
-// in localStorage, so you never need to hand-edit this file again —
-// even if you create a brand new Apps Script deployment later.
-//
-// First visit:
-//   yoursite.com/?token=YOUR_TOKEN&api=https://script.google.com/macros/s/xxx/exec
-// Every visit after that, both params are optional — the cached values
-// are used automatically.
-const qs = new URLSearchParams(location.search);
-
-const TOKEN = qs.get('token') || localStorage.getItem('cal_token') || '';
-if (qs.get('token')) localStorage.setItem('cal_token', qs.get('token'));
-
-const GAS_URL = qs.get('api') || localStorage.getItem('cal_api') || '';
-if (qs.get('api')) localStorage.setItem('cal_api', qs.get('api'));
-
-if (!TOKEN || !GAS_URL) {
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('log-list').innerHTML =
-      '<div class="empty-state">Missing setup — open this page once with '
-      + '<span class="mono">?token=...&api=...</span> in the URL to configure it.</div>';
-  });
-}
+// Your Apps Script /exec URL — this is fine to keep public, the token
+// is what actually protects the data.
+const GAS_URL = 'REPLACE_WITH_YOUR_APPS_SCRIPT_WEB_APP_URL';
+const TOKEN = new URLSearchParams(location.search).get('token') || '';
 
 /* ============ STATE ============ */
 let state = {
