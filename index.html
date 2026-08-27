@@ -555,11 +555,12 @@ function renderWeekStrip(){
     const isSelected = key === state.selectedDate;
     const hasData = state.availability.has(key);
     const pill = document.createElement('div');
+    const isFutureDay = d > new Date(state.today+'T23:59:59');
     pill.className = 'day-pill'
-      + (isToday? ' today':'') + (isSelected? ' selected':'') + (!hasData? ' disabled':'');
+      + (isToday? ' today':'') + (isSelected? ' selected':'') + (isFutureDay && !hasData? ' disabled':'');
     pill.innerHTML = `<span class="dow">${dows[i]}</span><span class="num">${d.getDate()}</span>`
       + (hasData && !isSelected ? '<span class="dot"></span>' : '');
-    if(hasData){
+    if(!isFutureDay || hasData){
       pill.addEventListener('click', ()=> loadDay(key));
     }
     strip.appendChild(pill);
@@ -715,12 +716,14 @@ function renderMonth(){
     const key = toKey(d);
     const hasData = state.availability.has(key);
     const cell = document.createElement('div');
+    const isFuture = d > new Date(state.today+'T23:59:59');
     cell.className = 'month-cell'
-      + (hasData? ' avail':' disabled')
+      + (hasData? ' avail':'')
+      + (isFuture? ' disabled':'')
       + (key===state.today? ' today':'')
       + (key===state.selectedDate? ' selected':'');
     cell.textContent = day;
-    if(hasData){
+    if(!isFuture){
       cell.addEventListener('click', ()=>{
         monthOverlay.classList.remove('open');
         loadDay(key);
