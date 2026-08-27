@@ -307,7 +307,7 @@
   </div>
 
   <div style="display:flex;align-items:center;justify-content:space-between;margin:26px 2px 12px;">
-    <p class="section-title" style="margin:0">Latest log</p>
+    <p class="section-title" style="margin:0">Recent activity</p>
     <button id="add-log-btn" style="width:32px;height:32px;border-radius:9px;background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--text-muted);cursor:pointer;font-size:18px;font-weight:700;">+</button>
   </div>
   <div class="card" id="log-list">
@@ -576,9 +576,15 @@ function renderRing(){
   const offset = CIRC - pct*CIRC;
   const ring = document.getElementById('ring-fill');
   ring.style.strokeDasharray = CIRC;
-  // B10: animate from 12 o'clock — reset to hidden, paint it, then transition to target
-  ring.style.strokeDashoffset = CIRC;
-  requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ ring.style.strokeDashoffset = offset; }); });
+  // B10: animate from 12 o'clock — but only if position actually changed
+  const prevOffset = parseFloat(ring.style.strokeDashoffset) || CIRC;
+  if(Math.abs(prevOffset - offset) > 0.5){
+    ring.style.transition = 'none';
+    ring.style.strokeDashoffset = CIRC;
+    requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ ring.style.transition = ''; ring.style.strokeDashoffset = offset; }); });
+  } else {
+    ring.style.strokeDashoffset = offset;
+  }
   // B4: red if over target, blue (out cal color) if under
   if(current > target) ring.style.stroke = 'var(--danger)';
   else if(current > 0) ring.style.stroke = 'var(--carbs)';
