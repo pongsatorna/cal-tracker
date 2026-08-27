@@ -54,6 +54,7 @@
 
   /* ---------- Header ---------- */
   .header{display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:22px;}
+  .app-name{font-family:'Bebas Neue',sans-serif; font-size:13px; color:var(--hot); letter-spacing:2px; margin:0 0 2px; text-transform:uppercase;}
   .header .eyebrow{color:var(--text-faint); font-size:12px; text-transform:uppercase; letter-spacing:1.5px; margin:0 0 2px;}
   .header .date{font-size:32px; margin:0; line-height:1;}
   .gear-btn{width:42px; height:42px; border-radius:50%; background:var(--surface);
@@ -91,6 +92,7 @@
   .ring-center .big{font-family:'Bebas Neue',sans-serif; font-size:38px; line-height:1;}
   .ring-center .unit{font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:1px; margin-top:2px;}
   .ring-center .of{font-size:11px; color:var(--text-muted); margin-top:4px;}
+  #ring-fill{transition:stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1);}
 
   .macro-list{flex:1; display:flex; flex-direction:column; gap:12px;}
   .macro-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;}
@@ -105,7 +107,7 @@
   .macro-row .name{color:var(--text-muted); font-weight:600;}
   .macro-row .val{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text);}
   .bar-track{height:6px; border-radius:99px; background:var(--surface-2); overflow:hidden;}
-  .bar-fill{height:100%; border-radius:99px;}
+  .bar-fill{height:100%; border-radius:99px; transition:width 0.6s cubic-bezier(0.4,0,0.2,1);}
 
   /* ---------- Latest log ---------- */
   .section-title{font-size:12px; color:var(--text-faint); text-transform:uppercase; letter-spacing:1.5px; margin:26px 2px 12px;}
@@ -232,6 +234,7 @@
 <div class="app">
   <div class="header">
     <div>
+      <p class="app-name">CAL TRACKER</p>
       <p class="eyebrow" id="dow-label">Today</p>
       <p class="date display" id="date-label">—</p>
     </div>
@@ -247,8 +250,18 @@
     </button>
   </div>
 
-  <div class="card">
-    <div class="ring-section">
+  <div class="card" id="ring-card">
+    <div id="ring-card-skeleton" style="display:none">
+      <div style="display:flex;align-items:center;gap:18px">
+        <div class="skel skel-ring"></div>
+        <div class="skel-macros">
+          <div class="skel skel-macro"></div>
+          <div class="skel skel-macro"></div>
+          <div class="skel skel-macro"></div>
+        </div>
+      </div>
+    </div>
+    <div class="ring-section" id="ring-section" style="display:none">
       <div class="ring-wrap">
         <svg viewBox="0 0 150 150">
           <defs>
@@ -485,6 +498,9 @@ async function loadDay(dateStr){
   renderWeekStrip();
   renderHeader();
   const el = document.getElementById('log-list');
+  // B9+B12: show ring-card skeleton, hide real ring
+  document.getElementById('ring-card-skeleton').style.display = '';
+  document.getElementById('ring-section').style.display = 'none';
   el.innerHTML = '<div style="padding:6px 14px">' +
     '<div class="skel-log"><div class="skel skel-icon"></div><div class="skel-lines"><div class="skel skel-line w60"></div><div class="skel skel-line w40"></div></div><div class="skel" style="width:40px;height:12px;border-radius:6px"></div></div>' +
     '<div class="skel-log"><div class="skel skel-icon"></div><div class="skel-lines"><div class="skel skel-line w60"></div><div class="skel skel-line w40"></div></div><div class="skel" style="width:40px;height:12px;border-radius:6px"></div></div>' +
@@ -493,6 +509,9 @@ async function loadDay(dateStr){
   try{
     const data = await api({ action:'data', date: dateStr });
     state.dayData = data;
+    // B9: hide skeleton, show real ring
+    document.getElementById('ring-card-skeleton').style.display = 'none';
+    document.getElementById('ring-section').style.display = '';
     renderRing();
     renderMacros();
     renderLogList();
@@ -507,6 +526,8 @@ async function loadDay(dateStr){
       msg += 'See browser console for details (' + e.message + ').';
     }
     el.innerHTML = '<div class="empty-state">' + msg + '</div>';
+    document.getElementById('ring-card-skeleton').style.display = 'none';
+    document.getElementById('ring-section').style.display = '';
   }
 }
 
@@ -555,6 +576,9 @@ function renderRing(){
   const offset = CIRC - pct*CIRC;
   const ring = document.getElementById('ring-fill');
   ring.style.strokeDasharray = CIRC;
+  // B10: animate from 12 o'clock — reset to hidden, force reflow, then set target
+  ring.style.strokeDashoffset = CIRC;
+  void ring.offsetWidth;
   ring.style.strokeDashoffset = offset;
   // B4: red if over target, blue (out cal color) if under
   if(current > target) ring.style.stroke = 'var(--danger)';
@@ -597,6 +621,9 @@ function renderMacros(){
     const val = t[key] || 0;
     const tgt = targets[key] || 1;
     const pct = Math.max(0, Math.min(100, (val/tgt)*100));
+    // B11: animate from 0 to target width
+    row.querySelector('.bar-fill').style.width = '0%';
+    void row.querySelector('.bar-fill').offsetWidth;
     row.querySelector('.bar-fill').style.width = pct+'%';
     row.querySelector('.val').textContent = state.unit === 'g'
       ? `${Math.round(val)} / ${Math.round(tgt)} g`
