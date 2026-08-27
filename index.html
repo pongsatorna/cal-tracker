@@ -9,9 +9,16 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="icon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
-<link rel="manifest" href="manifest.json">
+<!-- manifest.json intentionally not linked: on iOS, once a page declares
+     display:standalone via the manifest, the OS prefers the manifest's launch
+     URL resolution over the address-bar URL at install time — which in
+     practice drops our ?token&api query params even with start_url removed.
+     Dropping the manifest link here means iOS falls back to the older,
+     more reliable apple-mobile-web-app-* meta tags below, which bookmark
+     the exact URL shown in the address bar when you tap Add to Home Screen.
+     manifest.json is still in the repo/served, for any Android install flow
+     that wants it — Android has generally been reliable about this. -->
 <meta name="theme-color" content="#14171C">
-<!-- iOS-specific: makes "Add to Home Screen" open standalone (no browser chrome) -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Log">
@@ -304,6 +311,8 @@ if (!TOKEN || !GAS_URL) {
     'Missing token or API URL. Open this page once with '
     + '<code style="color:#FFB627">?token=YOUR_TOKEN&amp;api=YOUR_EXEC_URL</code> '
     + 'in the address bar — after that it\'s remembered on this device.'
+    + '<div style="margin-top:16px; font-size:11px; color:#565D6B; word-break:break-all;">'
+    + 'Launched with: ' + location.href + '</div>'
   );
 }
 
