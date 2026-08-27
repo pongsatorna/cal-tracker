@@ -201,6 +201,7 @@
     padding:12px 14px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:14px;}
   .form-field textarea{font-family:'Manrope',sans-serif;resize:none;height:60px;}
   .form-field input:focus,.form-field textarea:focus{outline:none;border-color:var(--amber);}
+  .form-field input:disabled{opacity:0.35;cursor:not-allowed;}
   .type-toggle{display:flex;gap:8px;}
   .type-toggle button{flex:1;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);
     color:var(--text-faint);font-weight:700;font-size:13px;cursor:pointer;}
@@ -576,15 +577,10 @@ function renderRing(){
   const offset = CIRC - pct*CIRC;
   const ring = document.getElementById('ring-fill');
   ring.style.strokeDasharray = CIRC;
-  // B10: animate from 12 o'clock — but only if position actually changed
-  const prevOffset = parseFloat(ring.style.strokeDashoffset) || CIRC;
-  if(Math.abs(prevOffset - offset) > 0.5){
-    ring.style.transition = 'none';
-    ring.style.strokeDashoffset = CIRC;
-    requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ ring.style.transition = ''; ring.style.strokeDashoffset = offset; }); });
-  } else {
-    ring.style.strokeDashoffset = offset;
-  }
+  // B10: always animate from 12 o'clock
+  ring.style.transition = 'none';
+  ring.style.strokeDashoffset = CIRC;
+  requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ ring.style.transition = ''; ring.style.strokeDashoffset = offset; }); });
   // B4: red if over target, blue (out cal color) if under
   if(current > target) ring.style.stroke = 'var(--danger)';
   else if(current > 0) ring.style.stroke = 'var(--carbs)';
@@ -627,9 +623,10 @@ function renderMacros(){
     const tgt = targets[key] || 1;
     const pct = Math.max(0, Math.min(100, (val/tgt)*100));
     // B11: animate from 0 to target width
-    row.querySelector('.bar-fill').style.width = '0%';
-    void row.querySelector('.bar-fill').offsetWidth;
-    row.querySelector('.bar-fill').style.width = pct+'%';
+    const bar = row.querySelector('.bar-fill');
+    bar.style.transition = 'none';
+    bar.style.width = '0%';
+    requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ bar.style.transition = ''; bar.style.width = pct+'%'; }); });
     row.querySelector('.val').textContent = state.unit === 'g'
       ? `${Math.round(val)} / ${Math.round(tgt)} g`
       : `${Math.round((val/tgt)*100)}%`;
@@ -809,14 +806,35 @@ function openLogForm(rowNumber){
 }
 
 let logFormType = 'In';
+const nutrientIds = ['form-protein','form-carbs','form-fat'];
 function setLogFormType(type){
   logFormType = type === 'out' ? 'Out' : 'In';
   const inBtn = document.getElementById('form-type-in');
   const outBtn = document.getElementById('form-type-out');
   inBtn.className = logFormType === 'In' ? 'active-in' : '';
   outBtn.className = logFormType === 'Out' ? 'active-out' : '';
+  // OUT: disable nutrient inputs, clear them
+  // IN: enable nutrient inputs, auto-calc calories
+  nutrientIds.forEach(id=>{
+    const el = document.getElementById(id);
+    if(logFormType === 'Out'){ el.disabled = true; el.value = ''; }
+    else { el.disabled = false; }
+  });
+  if(logFormType === 'In') calcCalories();
+}
+function calcCalories(){
+  const p = Number(document.getElementById('form-protein').value)||0;
+  const c = Number(document.getElementById('form-carbs').value)||0;
+  const f = Number(document.getElementById('form-fat').value)||0;
+  document.getElementById('form-calories').value = Math.round(p*4 + c*4 + f*9);
 }
 document.getElementById('form-type-in').addEventListener('click', ()=> setLogFormType('in'));
+// Auto-calc calories when nutrient inputs change (IN type only)
+nutrientIds.forEach(id=>{
+  document.getElementById(id).addEventListener('input', ()=>{
+    if(logFormType === 'In') calcCalories();
+  });
+});
 document.getElementById('form-type-out').addEventListener('click', ()=> setLogFormType('out'));
 
 document.getElementById('form-cancel-btn').addEventListener('click', ()=>{
