@@ -269,10 +269,43 @@
 
 <script>
 /* ============ CONFIG ============ */
-// Your Apps Script /exec URL — this is fine to keep public, the token
-// is what actually protects the data.
-const GAS_URL = 'REPLACE_WITH_YOUR_APPS_SCRIPT_WEB_APP_URL';
-const TOKEN = new URLSearchParams(location.search).get('token') || '';
+// Both values can be set once via URL query params and are then cached
+// in localStorage, so you never need to hand-edit this file again —
+// even if you create a brand new Apps Script deployment later.
+//
+// First visit:
+//   yoursite.com/?token=YOUR_TOKEN&api=https://script.google.com/macros/s/xxx/exec
+// Every visit after that, both params are optional — the cached values
+// are used automatically.
+const qs = new URLSearchParams(location.search);
+
+const TOKEN = qs.get('token') || localStorage.getItem('cal_token') || '';
+if (qs.get('token')) localStorage.setItem('cal_token', qs.get('token'));
+
+const GAS_URL = qs.get('api') || localStorage.getItem('cal_api') || '';
+if (qs.get('api')) localStorage.setItem('cal_api', qs.get('api'));
+
+// Shows an unmissable full-screen banner instead of failing silently.
+// Called directly (not via a 'DOMContentLoaded' listener) because this
+// script runs at the end of <body>, where that event has usually
+// already fired.
+function showFatalError(message){
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;inset:0;z-index:200;background:#14171C;color:#F5F3EE;'
+    + 'display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;'
+    + 'font-family:Manrope,sans-serif;font-size:14px;line-height:1.6;';
+  el.innerHTML = '<div style="max-width:340px"><div style="font-family:\'Bebas Neue\',sans-serif;'
+    + 'font-size:24px;color:#FF6B4A;margin-bottom:10px;">Setup needed</div>' + message + '</div>';
+  document.body.appendChild(el);
+}
+
+if (!TOKEN || !GAS_URL) {
+  showFatalError(
+    'Missing token or API URL. Open this page once with '
+    + '<code style="color:#FFB627">?token=YOUR_TOKEN&amp;api=YOUR_EXEC_URL</code> '
+    + 'in the address bar — after that it\'s remembered on this device.'
+  );
+}
 
 /* ============ STATE ============ */
 let state = {
@@ -307,16 +340,34 @@ async function api(params){
   const url = new URL(GAS_URL);
   url.searchParams.set('token', TOKEN);
   Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
-  const res = await fetch(url.toString());
-  return res.json();
+
+  let res;
+  try{
+    res = await fetch(url.toString());
+  }catch(networkErr){
+    // fetch() itself only throws for network failures or CORS blocks —
+    // it does NOT throw for HTTP error statuses (see the res.ok check below).
+    throw new Error('NETWORK_OR_CORS: ' + networkErr.message);
+  }
+  if (!res.ok){
+    throw new Error('HTTP_' + res.status);
+  }
+  const data = await res.json();
+  if (data && data.error){
+    throw new Error('API: ' + data.error);
+  }
+  return data;
 }
 
 /* ============ INIT ============ */
 async function init(){
+  if (!TOKEN || !GAS_URL) return; // banner already shown by showFatalError above
   try{
     const avail = await api({ action:'availability' });
     (avail.dates||[]).forEach(d => state.availability.add(d));
-  }catch(e){ console.error(e); }
+  }catch(e){
+    console.error('availability fetch failed:', e);
+  }
   state.availability.add(state.today); // today always selectable
   renderWeekStrip();
   await loadDay(state.selectedDate);
@@ -335,7 +386,16 @@ async function loadDay(dateStr){
     renderMacros();
     renderLogList();
   }catch(e){
-    el.innerHTML = '<div class="empty-state">Could not load — check your connection.</div>';
+    console.error('day data fetch failed:', e);
+    let msg = 'Could not load. ';
+    if (String(e.message).startsWith('API: unauthorized')) {
+      msg += 'Your token was rejected — double check it matches TOKEN in code.gs.';
+    } else if (String(e.message).startsWith('NETWORK_OR_CORS')) {
+      msg += 'Request was blocked (often CORS or an offline/expired deployment) — check the browser console for details.';
+    } else {
+      msg += 'See browser console for details (' + e.message + ').';
+    }
+    el.innerHTML = '<div class="empty-state">' + msg + '</div>';
   }
 }
 
