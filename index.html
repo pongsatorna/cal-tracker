@@ -168,6 +168,63 @@
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 
   ::-webkit-scrollbar{display:none;}
+  /* Shimmer skeleton */
+  @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+  .skel{background:var(--surface-2);border-radius:8px;
+    background:linear-gradient(90deg,var(--surface-2) 25%,var(--line) 50%,var(--surface-2) 75%);
+    background-size:200% 100%;animation:shimmer 1.6s ease-in-out infinite;}
+  .skel-ring{width:150px;height:150px;border-radius:50%;flex-shrink:0;}
+  .skel-macros{flex:1;display:flex;flex-direction:column;gap:12px;}
+  .skel-macro{height:22px;}
+  .skel-log{display:flex;align-items:center;gap:12px;padding:13px 4px;border-bottom:1px solid var(--line);}
+  .skel-log:last-child{border-bottom:none;}
+  .skel-icon{width:38px;height:38px;border-radius:11px;flex-shrink:0;}
+  .skel-lines{flex:1;display:flex;flex-direction:column;gap:6px;}
+  .skel-line{height:10px;border-radius:5px;}
+  .skel-line.w60{width:60%;}
+  .skel-line.w40{width:40%;}
+  @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+  /* Log form */
+  .form-overlay{position:fixed;inset:0;background:rgba(10,11,14,0.72);backdrop-filter:blur(3px);
+    display:flex;align-items:flex-end;justify-content:center;z-index:50;opacity:0;pointer-events:none;transition:opacity .18s;}
+  .form-overlay.open{opacity:1;pointer-events:auto;}
+  .form-sheet{background:var(--surface);width:100%;max-width:480px;border-radius:22px 22px 0 0;
+    padding:20px 18px 28px;transform:translateY(16px);transition:transform .2s;max-height:85vh;overflow-y:auto;}
+  .form-overlay.open .form-sheet{transform:translateY(0);}
+  .form-sheet h2{font-family:'Bebas Neue',sans-serif;font-size:22px;margin:0 0 16px;}
+  .form-field{margin-bottom:14px;}
+  .form-field label{display:block;font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+  .form-field input,.form-field textarea{width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;
+    padding:12px 14px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:14px;}
+  .form-field textarea{font-family:'Manrope',sans-serif;resize:none;height:60px;}
+  .form-field input:focus,.form-field textarea:focus{outline:none;border-color:var(--amber);}
+  .type-toggle{display:flex;gap:8px;}
+  .type-toggle button{flex:1;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);
+    color:var(--text-faint);font-weight:700;font-size:13px;cursor:pointer;}
+  .type-toggle button.active-in{background:rgba(255,107,74,0.14);border-color:var(--hot);color:var(--hot);}
+  .type-toggle button.active-out{background:rgba(96,165,250,0.14);border-color:var(--carbs);color:var(--carbs);}
+  .form-actions{display:flex;gap:8px;margin-top:16px;}
+  .form-actions .btn-save{flex:1;padding:14px;border:none;border-radius:14px;
+    background:linear-gradient(155deg,var(--hot),var(--amber));color:#14171C;font-weight:800;font-size:13px;
+    letter-spacing:0.5px;text-transform:uppercase;cursor:pointer;}
+  .form-actions .btn-cancel{padding:14px 20px;border:1px solid var(--line);border-radius:14px;
+    background:var(--surface-2);color:var(--text-muted);font-weight:700;font-size:13px;cursor:pointer;}
+  .form-actions .btn-delete{padding:14px 20px;border:1px solid var(--danger);border-radius:14px;
+    background:rgba(255,77,109,0.1);color:var(--danger);font-weight:700;font-size:13px;cursor:pointer;}
+
+  /* Delete confirm */
+  .confirm-overlay{position:fixed;inset:0;background:rgba(10,11,14,0.85);backdrop-filter:blur(4px);
+    display:flex;align-items:center;justify-content:center;z-index:55;opacity:0;pointer-events:none;transition:opacity .15s;}
+  .confirm-overlay.open{opacity:1;pointer-events:auto;}
+  .confirm-box{background:var(--surface);border:1px solid var(--line);border-radius:18px;
+    padding:24px 20px 20px;max-width:300px;width:90%;text-align:center;}
+  .confirm-box p{color:var(--text);font-size:14px;margin:0 0 18px;line-height:1.5;}
+  .confirm-actions{display:flex;gap:8px;}
+  .confirm-actions button{flex:1;padding:12px;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;border:none;}
+  .confirm-actions .btn-yes{background:var(--danger);color:#fff;}
+  .confirm-actions .btn-no{background:var(--surface-2);border:1px solid var(--line);color:var(--text-muted);}
+
 </style>
 </head>
 <body>
@@ -236,9 +293,50 @@
     </div>
   </div>
 
-  <p class="section-title">Latest log</p>
-  <div class="card" id="log-list" style="padding:6px 14px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin:26px 2px 12px;">
+    <p class="section-title" style="margin:0">Latest log</p>
+    <button id="add-log-btn" style="width:32px;height:32px;border-radius:9px;background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--text-muted);cursor:pointer;font-size:18px;font-weight:700;">+</button>
+  </div>
+  <div class="card" id="log-list">
     <div class="empty-state">Loading…</div>
+  </div>
+</div>
+
+<!-- Log form -->
+<div class="form-overlay" id="log-form-overlay">
+  <div class="form-sheet">
+    <h2 id="form-title">Add log</h2>
+    <input type="hidden" id="form-row-number">
+    <div class="form-field"><label>Item / Meal</label><input type="text" id="form-item" placeholder="e.g. Grilled chicken rice"></div>
+    <div class="form-field"><label>Type</label>
+      <div class="type-toggle">
+        <button id="form-type-in" class="active-in">In</button>
+        <button id="form-type-out">Out</button>
+      </div>
+    </div>
+    <div class="form-field"><label>Calories</label><input type="number" id="form-calories" placeholder="0"></div>
+    <div style="display:flex;gap:8px">
+      <div class="form-field" style="flex:1"><label>Protein (g)</label><input type="number" id="form-protein" placeholder="0"></div>
+      <div class="form-field" style="flex:1"><label>Carbs (g)</label><input type="number" id="form-carbs" placeholder="0"></div>
+      <div class="form-field" style="flex:1"><label>Fat (g)</label><input type="number" id="form-fat" placeholder="0"></div>
+    </div>
+    <div class="form-field"><label>Notes</label><textarea id="form-notes" placeholder="Optional"></textarea></div>
+    <div class="form-actions">
+      <button class="btn-save" id="form-save-btn">Save</button>
+      <button class="btn-cancel" id="form-cancel-btn">Cancel</button>
+      <button class="btn-delete" id="form-delete-btn" style="display:none">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <p>Delete this log entry?</p>
+    <div class="confirm-actions">
+      <button class="btn-no" id="confirm-no">Cancel</button>
+      <button class="btn-yes" id="confirm-yes">Delete</button>
+    </div>
   </div>
 </div>
 
@@ -387,7 +485,11 @@ async function loadDay(dateStr){
   renderWeekStrip();
   renderHeader();
   const el = document.getElementById('log-list');
-  el.innerHTML = '<div class="empty-state">Loading…</div>';
+  el.innerHTML = '<div style="padding:6px 14px">' +
+    '<div class="skel-log"><div class="skel skel-icon"></div><div class="skel-lines"><div class="skel skel-line w60"></div><div class="skel skel-line w40"></div></div><div class="skel" style="width:40px;height:12px;border-radius:6px"></div></div>' +
+    '<div class="skel-log"><div class="skel skel-icon"></div><div class="skel-lines"><div class="skel skel-line w60"></div><div class="skel skel-line w40"></div></div><div class="skel" style="width:40px;height:12px;border-radius:6px"></div></div>' +
+    '<div class="skel-log"><div class="skel skel-icon"></div><div class="skel-lines"><div class="skel skel-line w60"></div><div class="skel skel-line w40"></div></div><div class="skel" style="width:40px;height:12px;border-radius:6px"></div></div>' +
+    '</div>';
   try{
     const data = await api({ action:'data', date: dateStr });
     state.dayData = data;
@@ -454,10 +556,21 @@ function renderRing(){
   const ring = document.getElementById('ring-fill');
   ring.style.strokeDasharray = CIRC;
   ring.style.strokeDashoffset = offset;
-  ring.style.stroke = current > target ? 'var(--danger)' : 'url(#ringGrad)';
+  // B4: red if over target, blue (out cal color) if under
+  if(current > target) ring.style.stroke = 'var(--danger)';
+  else if(current > 0) ring.style.stroke = 'var(--carbs)';
+  else ring.style.stroke = '#262B33';
 
-  document.getElementById('cal-current').textContent = current;
-  document.getElementById('cal-target-label').textContent = 'of '+Math.round(target);
+  // B5: show % in ring center when unit toggle is pct
+  if(state.unit === 'pct'){
+    document.getElementById('cal-current').textContent = Math.round((current/target)*100);
+    document.getElementById('cal-target-label').textContent = '% of target';
+    document.querySelector('.ring-center .unit').textContent = '%';
+  } else {
+    document.getElementById('cal-current').textContent = current;
+    document.getElementById('cal-target-label').textContent = 'of '+Math.round(target);
+    document.querySelector('.ring-center .unit').textContent = 'kcal';
+  }
 
   // ticks every 10%
   const tickGroup = document.getElementById('tick-group');
@@ -489,17 +602,18 @@ function renderMacros(){
       ? `${Math.round(val)} / ${Math.round(tgt)} g`
       : `${Math.round((val/tgt)*100)}%`;
   });
+  syncUnitButtons();
 }
-document.getElementById('toggle-g').addEventListener('click', ()=>{
-  state.unit='g'; syncUnitButtons(); renderMacros();
-});
-document.getElementById('toggle-pct').addEventListener('click', ()=>{
-  state.unit='pct'; syncUnitButtons(); renderMacros();
-});
 function syncUnitButtons(){
   document.getElementById('toggle-g').classList.toggle('active', state.unit==='g');
   document.getElementById('toggle-pct').classList.toggle('active', state.unit==='pct');
 }
+document.getElementById('toggle-g').addEventListener('click', ()=>{
+  state.unit='g'; syncUnitButtons(); renderMacros(); renderRing();
+});
+document.getElementById('toggle-pct').addEventListener('click', ()=>{
+  state.unit='pct'; syncUnitButtons(); renderMacros(); renderRing();
+});
 
 /* ============ LOG LIST ============ */
 const inIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2v20M6 2a4 4 0 014 4v4a4 4 0 01-4 4M18 2v20M18 8a3 3 0 00-3 3v0a3 3 0 003 3"/></svg>';
@@ -508,14 +622,20 @@ const outIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 function renderLogList(){
   const el = document.getElementById('log-list');
   const logs = state.dayData.logs;
+  // B2: empty state
   if(!logs.length){
-    el.innerHTML = '<div class="empty-state">Nothing logged yet. Send a photo or tell your skill what you ate.</div>';
+    el.innerHTML = '<div class="empty-state" style="padding:28px 4px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:40px;height:40px;margin:0 auto 12px;display:block;color:var(--text-faint)"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3"/></svg>'
+      + '<div style="font-size:14px;color:var(--text-muted);margin-bottom:4px">No logs yet today</div>'
+      + '<div style="font-size:12px;color:var(--text-faint);margin-bottom:14px">Start tracking by adding your first meal</div>'
+      + '<button onclick="openLogForm()" style="padding:10px 20px;border:none;border-radius:12px;background:linear-gradient(155deg,var(--hot),var(--amber));color:#14171C;font-weight:700;font-size:13px;cursor:pointer;">Add your first meal</button>'
+      + '</div>';
     return;
   }
+  // B7: clickable log items with rowNumber
   const sorted = [...logs].sort((a,b)=> b.time.localeCompare(a.time));
   el.innerHTML = sorted.map(r=>{
     const isOut = r.type === 'Out';
-    return `<div class="log-item">
+    return `<div class="log-item" data-row="${r.rowNumber||''}" onclick="openLogForm(${r.rowNumber||0})" style="cursor:pointer">
       <div class="log-icon ${isOut?'out':'in'}">${isOut?outIcon:inIcon}</div>
       <div class="log-body">
         <div class="log-name">${escapeHtml(r.item)}</div>
@@ -615,6 +735,155 @@ document.getElementById('save-target-btn').addEventListener('click', async ()=>{
     document.getElementById('save-msg').textContent = 'Could not save — check your connection.';
   }
   btn.disabled = false; btn.textContent = 'Save target';
+});
+
+/* ============ LOG FORM (B3 + B7) ============ */
+let formMode = 'add'; // 'add' or 'edit'
+let formEditRow = null;
+
+function openLogForm(rowNumber){
+  const overlay = document.getElementById('log-form-overlay');
+  document.getElementById('form-row-number').value = rowNumber || '';
+  document.getElementById('form-notes').value = '';
+  if(rowNumber && state.dayData && state.dayData.logs){
+    const log = state.dayData.logs.find(r=> r.rowNumber === rowNumber);
+    if(log){
+      formMode = 'edit'; formEditRow = rowNumber;
+      document.getElementById('form-title').textContent = 'Edit log';
+      document.getElementById('form-item').value = log.item || '';
+      document.getElementById('form-calories').value = log.calories || '';
+      document.getElementById('form-protein').value = log.protein || '';
+      document.getElementById('form-carbs').value = log.carbs || '';
+      document.getElementById('form-fat').value = log.fat || '';
+      document.getElementById('form-notes').value = log.notes || '';
+      document.getElementById('form-save-btn').textContent = 'Save changes';
+      document.getElementById('form-delete-btn').style.display = '';
+      setLogFormType(log.type === 'Out' ? 'out' : 'in');
+      overlay.classList.add('open');
+      return;
+    }
+  }
+  formMode = 'add'; formEditRow = null;
+  document.getElementById('form-title').textContent = 'Add log';
+  document.getElementById('form-item').value = '';
+  document.getElementById('form-calories').value = '';
+  document.getElementById('form-protein').value = '';
+  document.getElementById('form-carbs').value = '';
+  document.getElementById('form-fat').value = '';
+  document.getElementById('form-save-btn').textContent = 'Save';
+  document.getElementById('form-delete-btn').style.display = 'none';
+  setLogFormType('in');
+  overlay.classList.add('open');
+}
+
+let logFormType = 'In';
+function setLogFormType(type){
+  logFormType = type === 'out' ? 'Out' : 'In';
+  const inBtn = document.getElementById('form-type-in');
+  const outBtn = document.getElementById('form-type-out');
+  inBtn.className = logFormType === 'In' ? 'active-in' : '';
+  outBtn.className = logFormType === 'Out' ? 'active-out' : '';
+}
+document.getElementById('form-type-in').addEventListener('click', ()=> setLogFormType('in'));
+document.getElementById('form-type-out').addEventListener('click', ()=> setLogFormType('out'));
+
+document.getElementById('form-cancel-btn').addEventListener('click', ()=>{
+  document.getElementById('log-form-overlay').classList.remove('open');
+});
+
+document.getElementById('form-save-btn').addEventListener('click', async ()=>{
+  const params = {
+    item: document.getElementById('form-item').value.trim(),
+    type: logFormType,
+    calories: document.getElementById('form-calories').value || '0',
+    protein: document.getElementById('form-protein').value || '0',
+    carbs: document.getElementById('form-carbs').value || '0',
+    fat: document.getElementById('form-fat').value || '0',
+    notes: document.getElementById('form-notes').value
+  };
+  if(!params.item){ showToast('Please enter an item name'); return; }
+  const btn = document.getElementById('form-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    if(formMode === 'edit' && formEditRow){
+      params.rowNumber = formEditRow;
+      await api({ action:'updateLog', ...params });
+    } else {
+      await api({ action:'addLog', ...params });
+    }
+    document.getElementById('log-form-overlay').classList.remove('open');
+    showToast(formMode === 'edit' ? 'Log updated' : 'Log added');
+    await loadDay(state.selectedDate);
+  } catch(e){
+    showToast('Could not save — check connection');
+  }
+  btn.disabled = false;
+  btn.textContent = formMode === 'edit' ? 'Save changes' : 'Save';
+});
+
+// B7: delete flow
+document.getElementById('form-delete-btn').addEventListener('click', ()=>{
+  document.getElementById('confirm-overlay').classList.add('open');
+});
+document.getElementById('confirm-no').addEventListener('click', ()=>{
+  document.getElementById('confirm-overlay').classList.remove('open');
+});
+document.getElementById('confirm-yes').addEventListener('click', async ()=>{
+  document.getElementById('confirm-overlay').classList.remove('open');
+  if(!formEditRow) return;
+  try {
+    await api({ action:'deleteLog', rowNumber: formEditRow });
+    document.getElementById('log-form-overlay').classList.remove('open');
+    showToast('Log deleted');
+    await loadDay(state.selectedDate);
+  } catch(e){
+    showToast('Could not delete — check connection');
+  }
+});
+
+// + button opens add form
+document.getElementById('add-log-btn').addEventListener('click', ()=> openLogForm());
+
+// Close overlays on backdrop tap
+document.getElementById('log-form-overlay').addEventListener('click', e=>{
+  if(e.target.id === 'log-form-overlay') e.target.classList.remove('open');
+});
+
+/* ============ PULL TO REFRESH (B6) ============ */
+let pullStartY = 0, pulling = false;
+const appEl = document.querySelector('.app');
+appEl.addEventListener('touchstart', e=>{
+  if(window.scrollY <= 0) pullStartY = e.touches[0].clientY;
+});
+appEl.addEventListener('touchmove', e=>{
+  if(pullStartY === 0) return;
+  const dy = e.touches[0].clientY - pullStartY;
+  if(dy > 60 && window.scrollY <= 0){
+    pulling = true;
+    const el = document.getElementById('log-list');
+    if(!el.querySelector('.pull-indicator')){
+      const ind = document.createElement('div');
+      ind.className = 'pull-indicator';
+      ind.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" style="width:22px;height:22px;animation:spin .8s linear infinite"><path d="M21 12a9 9 0 11-6.22-8.56"/><path d="M21 3v5h-5"/></svg>';
+      ind.style.cssText = 'text-align:center;padding:10px 0;';
+      el.prepend(ind);
+    }
+  }
+});
+appEl.addEventListener('touchend', async ()=>{
+  if(pulling){
+    pulling = false; pullStartY = 0;
+    const ind = document.querySelector('.pull-indicator');
+    if(ind) ind.remove();
+    showToast('Refreshing…');
+    try {
+      const avail = await api({ action:'availability' });
+      state.availability = new Set(avail.dates || []);
+      state.availability.add(state.today);
+    } catch(e){}
+    await loadDay(state.selectedDate);
+  }
+  pullStartY = 0;
 });
 
 init();
