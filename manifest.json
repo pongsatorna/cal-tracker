@@ -1,7 +1,6 @@
 {
   "name": "Cal Tracker",
   "short_name": "Log",
-  "start_url": ".",
   "display": "standalone",
   "background_color": "#14171C",
   "theme_color": "#14171C",
