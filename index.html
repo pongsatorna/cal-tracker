@@ -273,7 +273,7 @@
           <circle cx="75" cy="75" r="64" fill="none" stroke="#262B33" stroke-width="12"/>
           <g id="tick-group"></g>
           <circle id="ring-fill" cx="75" cy="75" r="64" fill="none" stroke="url(#ringGrad)"
-            stroke-width="12" stroke-linecap="round" stroke-dasharray="402" stroke-dashoffset="402"/>
+            stroke-width="12" stroke-linecap="round" stroke-dasharray="402"/>
         </svg>
         <div class="ring-center">
           <div class="big mono" id="cal-current">0</div>
@@ -576,10 +576,9 @@ function renderRing(){
   const offset = CIRC - pct*CIRC;
   const ring = document.getElementById('ring-fill');
   ring.style.strokeDasharray = CIRC;
-  // B10: animate from 12 o'clock — reset to hidden, force reflow, then set target
+  // B10: animate from 12 o'clock — reset to hidden, paint it, then transition to target
   ring.style.strokeDashoffset = CIRC;
-  void ring.offsetWidth;
-  ring.style.strokeDashoffset = offset;
+  requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ ring.style.strokeDashoffset = offset; }); });
   // B4: red if over target, blue (out cal color) if under
   if(current > target) ring.style.stroke = 'var(--danger)';
   else if(current > 0) ring.style.stroke = 'var(--carbs)';
