@@ -288,10 +288,8 @@
           </defs>
           <circle cx="75" cy="75" r="64" fill="none" stroke="#262B33" stroke-width="12"/>
           <g id="tick-group"></g>
-          <g id="ring-group">
-            <circle id="ring-fill" cx="75" cy="75" r="64" fill="none" stroke="url(#ringGrad)"
-              stroke-width="12" stroke-linecap="round" stroke-dasharray="402"/>
-          </g>
+          <circle id="ring-fill" cx="75" cy="75" r="64" fill="none" stroke="url(#ringGrad)"
+            stroke-width="12" stroke-linecap="round" stroke-dasharray="402"/>
         </svg>
         <div class="ring-center">
           <div class="big mono" id="cal-current">0</div>
@@ -596,22 +594,21 @@ function renderRing(){
   const targets = state.dayData.targets;
   const current = Math.round(t.netCalories);
   const target = targets.calories || 1;
-  const ringGroup = document.getElementById('ring-group');
   const ring = document.getElementById('ring-fill');
 
   ring.style.strokeDasharray = CIRC;
 
-  // B15: negative net → counter-clockwise green
+  // B15: negative net → counter-clockwise green from 12 o'clock
   if(current <= 0){
     const absPct = Math.min(1, Math.abs(current) / target);
-    const offset = CIRC - absPct * CIRC;
-    ringGroup.setAttribute('transform', 'scale(-1,1) translate(-150,0)');
+    // offset 0→CIRC reveals stroke counter-clockwise from 12 o'clock
+    const offset = absPct * CIRC;
     ring.style.transition = 'none';
-    ring.style.strokeDashoffset = CIRC;
+    ring.style.strokeDashoffset = 0;
     requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ ring.style.transition = ''; ring.style.strokeDashoffset = offset; }); });
     ring.style.stroke = 'var(--protein)';
   } else {
-    ringGroup.removeAttribute('transform');
+    // clockwise from 12 o'clock (offset goes from CIRC toward 0)
     const pct = Math.min(1, current / target);
     const offset = CIRC - pct * CIRC;
     ring.style.transition = 'none';
@@ -673,10 +670,12 @@ function syncUnitButtons(){
   document.getElementById('toggle-pct').classList.toggle('active', state.unit==='pct');
 }
 document.getElementById('toggle-g').addEventListener('click', ()=>{
-  state.unit='g'; syncUnitButtons(); renderMacros(); renderRing();
+  state.unit = state.unit === 'g' ? 'pct' : 'g';
+  syncUnitButtons(); renderMacros(); renderRing();
 });
 document.getElementById('toggle-pct').addEventListener('click', ()=>{
-  state.unit='pct'; syncUnitButtons(); renderMacros(); renderRing();
+  state.unit = state.unit === 'g' ? 'pct' : 'g';
+  syncUnitButtons(); renderMacros(); renderRing();
 });
 
 /* ============ LOG LIST ============ */
