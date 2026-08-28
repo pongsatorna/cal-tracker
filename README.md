@@ -1,8 +1,24 @@
 # Cal Tracker 🥗📊
 
-A lightweight, mobile-first **Progressive Web Application (PWA)** for daily calorie and macro-nutrient tracking (Calories, Protein, Carbs, Fat, and Calories Burned).
+A lightweight, mobile-first **Progressive Web Application (PWA)** and **AI-powered fitness ecosystem** for daily calorie and macro-nutrient tracking (Calories, Protein, Carbs, Fat, and Calories Burned).
 
-Built with pure Vanilla JavaScript and CSS, designed to run seamlessly on iOS & Android standalone web app mode ("Add to Home Screen"), backed by a Google Apps Script REST API and Google Sheets data store.
+Designed to run seamlessly on iOS & Android standalone web app mode ("Add to Home Screen"), backed by **Gemini Spark AI** for automated meal photo analysis, **Google Sheets** for data storage, and **Google Apps Script** for backend API endpoints — **100% free with zero monthly server costs!**
+
+---
+
+## 🤖 Gemini Spark AI Integration & Workflow
+
+Logging food and exercise is completely friction-free thanks to **Gemini Spark AI**:
+
+1. **Multimodal Meal & Photo Analysis**:
+   - Snap a photo of any meal, product, or prepared dish.
+   - **Gemini Spark AI** analyzes the image, identifies the ingredients, and proposes estimated **Calories, Protein, Carbs, and Fat**.
+   - Upon your confirmation, the entry is automatically **appended as a new row** directly into your Google Sheet.
+2. **AI Cardio & Activity Calculations**:
+   - Describe an exercise or cardio session.
+   - A custom AI Skill calculates calories burned (`Out`) tailored to your personal profile inputs and appends the row to Google Sheets.
+3. **Real-Time Visual PWA Dashboard**:
+   - `cal-tracker` connects directly to the same Google Sheet to display real-time daily totals, dynamic progress rings, macro breakdowns, and date navigation.
 
 ---
 
@@ -12,7 +28,7 @@ Built with pure Vanilla JavaScript and CSS, designed to run seamlessly on iOS & 
   - Visual SVG progress ring tracking net daily calories against your goal.
   - **Positive Net Calories**: Fills clockwise starting from 12 o'clock in blue (or red when exceeding target).
   - **Negative Net Calories**: Fills counter-clockwise starting from 12 o'clock in vibrant green.
-- **Macro Breakdown & Toggle**:
+- **Macro Breakdown & Unit Toggle**:
   - Live progress bars for **Protein**, **Carbs**, and **Fat**.
   - Toggle display units between **Grams (g)** and **Percentage (%) of target**.
 - **Interactive Date Navigation**:
@@ -22,44 +38,55 @@ Built with pure Vanilla JavaScript and CSS, designed to run seamlessly on iOS & 
   - Instant UI highlight, date header, and skeleton shimmer loading feedback on tap.
   - 200ms debounced network requests to optimize Apps Script executions.
   - Monotonic request guard (`currentLoadId`) to reject stale or out-of-order responses during rapid date switching.
-- **Manual Log Entry & Settings**:
-  - Add food/calorie intake (`In`) or exercise/burn (`Out`).
-  - Edit or delete logged entries with automatic sheet row synchronization.
-  - Settings panel to configure daily targets (Calories, Protein, Carbs, Fat).
+- **Target Settings with Grams / % Switch**:
+  - Easily configure daily goals in **Grams** or **Percentages** with automatic calorie and ratio calculations.
+- **Manual Log Entry & Editing**:
+  - Add, edit, or delete logged entries with automatic sheet row synchronization.
 - **iOS & Android PWA Ready**:
   - Custom apple-touch-icon, standalone mobile viewport, dark theme (`#14171C`), and smooth touch interactions.
 
 ---
 
-## 🏗️ Architecture & Tech Stack
+## 🏗️ End-to-End System Architecture
 
 ```
- ┌─────────────────────────────────────────────────┐
- │               PWA Mobile Web App                │
- │         (index.html - HTML5 / CSS3 / JS)        │
- └────────────────────────┬────────────────────────┘
-                          │
-                          │ HTTP GET/POST API Requests
-                          │ (?action=...&token=...)
-                          ▼
- ┌─────────────────────────────────────────────────┐
- │           Google Apps Script API                │
- │          (gg-appscript/code.gs)                 │
- └────────────────────────┬────────────────────────┘
-                          │
-                          │ Google Apps Script SpreadsheetApp API
-                          ▼
- ┌─────────────────────────────────────────────────┐
- │               Google Sheets Database            │
- │             (Sheets: Log & Targets)             │
- └─────────────────────────────────────────────────┘
+ ┌─────────────────────────────────────────────────────────────┐
+ │            Gemini Spark AI Multimodal Skill                 │
+ │ (Photo Analysis, Dish/Product Macro Estimation, Cardio Math) │
+ └──────────────────────────────┬──────────────────────────────┘
+                                │ Appends New Rows
+                                ▼
+ ┌─────────────────────────────────────────────────────────────┐
+ │                Google Sheets Database ($0/mo)               │
+ │                   (Sheets: Log & Targets)                   │
+ └──────────────┬──────────────────────────────▲───────────────┘
+                │ Reads Log Rows               │ Writes Logs
+                │ & Target Goals               │ & Targets
+                ▼                              │
+ ┌─────────────────────────────────────────────┴───────────────┐
+ │               Google Apps Script REST API ($0/mo)           │
+ │                     (gg-appscript/code.gs)                  │
+ └──────────────────────────────▲──────────────────────────────┘
+                                │ HTTP API (?action=...&token=...)
+                                ▼
+ ┌─────────────────────────────────────────────────────────────┐
+ │             Cal Tracker PWA Dashboard ($0/mo)               │
+ │                 (Hosted on GitHub Pages)                    │
+ └─────────────────────────────────────────────────────────────┘
 ```
 
-- **Frontend**: Single-file Vanilla JS web app (`index.html`) with zero heavy framework dependencies.
-- **Fonts**: Manrope, Bebas Neue, JetBrains Mono via Google Fonts.
-- **Backend Service**: Google Apps Script (`gg-appscript/code.gs`) deployed as a Web App.
-- **Database**: Google Sheets (`Log` and `Targets` sheets).
-- **Authentication**: Token-authenticated API parameters.
+---
+
+## 💰 $0 / Month Serverless Stack
+
+This entire ecosystem runs with **zero monthly subscription or server costs**:
+
+| Component | Technology | Cost |
+| :--- | :--- | :--- |
+| **AI Intelligence** | Gemini API / Gemini Spark | **$0** (Free Tier) |
+| **Database** | Google Sheets | **$0** (Free Google Drive Storage) |
+| **Backend API** | Google Apps Script (`code.gs`) | **$0** (Free Cloud Execution) |
+| **Web Dashboard** | GitHub Pages (`cal-tracker`) | **$0** (Free Static PWA Hosting) |
 
 ---
 
@@ -67,9 +94,17 @@ Built with pure Vanilla JavaScript and CSS, designed to run seamlessly on iOS & 
 
 ```
 cal-tracker/
-├── index.html            # Main PWA frontend web application
+├── index.html            # Main PWA entry point (~150 lines)
 ├── manifest.json         # PWA Web App Manifest
+├── README.md             # Project documentation
+├── package.json          # Test runner config
+├── css/
+│   └── styles.css        # Extracted CSS styles & variables
+├── js/
+│   └── app.js            # Extracted JS state, rendering & API logic
 ├── icons/                # App icon assets (16x16, 32x32, 180x180, 192x192, 512x512)
+├── tests/
+│   └── app.test.js       # Zero-dependency automated unit test suite
 ├── gg-appscript/
 │   └── code.gs           # Google Apps Script backend Web App API code
 └── docs/                 # System documentation & plans
@@ -120,6 +155,19 @@ Headers in Row 1:
 In `index.html`, set your deployment parameters in the query string or URL configuration:
 - `GAS_URL`: Your Apps Script Web App URL.
 - `TOKEN`: Your matching secret token.
+
+---
+
+### 4. Running Unit Tests
+
+Run the automated test suite locally anytime with:
+```bash
+npm test
+```
+Or directly using Node.js:
+```bash
+node --test tests/app.test.js
+```
 
 ---
 
