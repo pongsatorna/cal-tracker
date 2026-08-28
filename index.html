@@ -605,8 +605,8 @@ function renderRing(){
   if(current <= 0){
     const absPct = Math.min(1, Math.abs(current) / target);
     const offset = CIRC - absPct * CIRC;
-    // Mirror ring-group horizontally so stroke fills counter-clockwise
-    ringGroup.setAttribute('transform', 'scale(-1,1) translate(-150,0)');
+    // Mirror ring-group vertically so stroke fills counter-clockwise from 12 o'clock (since base starts at 90deg rotation)
+    ringGroup.setAttribute('transform', 'translate(0, 150) scale(1, -1)');
     ring.style.transition = 'none';
     ring.style.strokeDashoffset = CIRC;
     requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ ring.style.transition = ''; ring.style.strokeDashoffset = offset; }); });
