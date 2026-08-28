@@ -100,7 +100,7 @@
   .unit-toggle{display:flex; background:var(--surface-2); border-radius:999px; padding:2px; gap:2px;}
   .unit-toggle button{border:none; background:transparent; color:var(--text-faint); font-size:10px;
     padding:4px 9px; border-radius:999px; cursor:pointer; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;}
-  .unit-toggle button.active{background:var(--text); color:var(--bg);}
+  .unit-toggle button.active{background:var(--text);color:var(--bg);box-shadow:0 1px 4px rgba(0,0,0,0.3);}
 
   .macro-row{display:flex; flex-direction:column; gap:4px;}
   .macro-row .top{display:flex; justify-content:space-between; font-size:12px;}
@@ -244,15 +244,13 @@
 <body>
 
 <div class="splash" id="splash">
-  <svg class="splash-icon" viewBox="0 0 24 24" fill="none" stroke="var(--hot)" stroke-width="1.5">
-    <path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3"/>
-  </svg>
+  <img class="splash-icon" src="icon-192.png" alt="CAL TRACKER">
   <div class="splash-name">CAL TRACKER</div>
 </div>
 <div class="app app-init">
   <div class="header">
     <div>
-      <p class="app-name">CAL TRACKER</p>
+      <p class="app-name"><img src="icon-32.png" alt="" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;border-radius:4px;">CAL TRACKER</p>
       <p class="eyebrow" id="dow-label">Today</p>
       <p class="date display" id="date-label">—</p>
     </div>
@@ -289,8 +287,8 @@
             </linearGradient>
           </defs>
           <circle cx="75" cy="75" r="64" fill="none" stroke="#262B33" stroke-width="12"/>
+          <g id="tick-group"></g>
           <g id="ring-group">
-            <g id="tick-group"></g>
             <circle id="ring-fill" cx="75" cy="75" r="64" fill="none" stroke="url(#ringGrad)"
               stroke-width="12" stroke-linecap="round" stroke-dasharray="402"/>
           </g>
