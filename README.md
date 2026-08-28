@@ -69,11 +69,7 @@ Built with pure Vanilla JavaScript and CSS, designed to run seamlessly on iOS & 
 cal-tracker/
 ├── index.html            # Main PWA frontend web application
 ├── manifest.json         # PWA Web App Manifest
-├── icon-16.png           # App icon (16x16)
-├── icon-32.png           # App icon (32x32)
-├── icon-180.png          # Apple Touch Icon (180x180)
-├── icon-192.png          # Android App Icon (192x192)
-├── icon-512.png          # High-res App Icon (512x512)
+├── icons/                # App icon assets (16x16, 32x32, 180x180, 192x192, 512x512)
 ├── gg-appscript/
 │   └── code.gs           # Google Apps Script backend Web App API code
 └── docs/                 # System documentation & plans
