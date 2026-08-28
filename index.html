@@ -169,6 +169,17 @@
     font-size:12.5px; color:var(--text); opacity:0; transition:all .25s; z-index:80; pointer-events:none;}
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
 
+  
+  /* B13: Splash screen */
+  .splash{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.4s ease;}
+  .splash.hide{opacity:0;pointer-events:none;}
+  .splash-icon{width:80px;height:80px;margin-bottom:16px;}
+  .splash-name{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--hot);letter-spacing:3px;}
+  .app-init{opacity:0;transition:opacity 0.3s ease;}
+  .app-init.ready{opacity:1;}
+  /* B16: toggle press feedback */
+  .unit-toggle button:active{transform:scale(0.92);transition:transform 0.1s;}
+
   ::-webkit-scrollbar{display:none;}
   /* Shimmer skeleton */
   @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
@@ -232,7 +243,13 @@
 </head>
 <body>
 
-<div class="app">
+<div class="splash" id="splash">
+  <svg class="splash-icon" viewBox="0 0 24 24" fill="none" stroke="var(--hot)" stroke-width="1.5">
+    <path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3"/>
+  </svg>
+  <div class="splash-name">CAL TRACKER</div>
+</div>
+<div class="app app-init">
   <div class="header">
     <div>
       <p class="app-name">CAL TRACKER</p>
@@ -272,9 +289,11 @@
             </linearGradient>
           </defs>
           <circle cx="75" cy="75" r="64" fill="none" stroke="#262B33" stroke-width="12"/>
-          <g id="tick-group"></g>
-          <circle id="ring-fill" cx="75" cy="75" r="64" fill="none" stroke="url(#ringGrad)"
-            stroke-width="12" stroke-linecap="round" stroke-dasharray="402"/>
+          <g id="ring-group">
+            <g id="tick-group"></g>
+            <circle id="ring-fill" cx="75" cy="75" r="64" fill="none" stroke="url(#ringGrad)"
+              stroke-width="12" stroke-linecap="round" stroke-dasharray="402"/>
+          </g>
         </svg>
         <div class="ring-center">
           <div class="big mono" id="cal-current">0</div>
@@ -492,6 +511,11 @@ async function init(){
   state.availability.add(state.today); // today always selectable
   renderWeekStrip();
   await loadDay(state.selectedDate);
+  // B13: fade out splash, reveal app
+  const splash = document.getElementById('splash');
+  splash.classList.add('hide');
+  document.querySelector('.app').classList.add('ready');
+  setTimeout(()=> splash.style.display='none', 500);
 }
 
 async function loadDay(dateStr){
@@ -574,18 +598,30 @@ function renderRing(){
   const targets = state.dayData.targets;
   const current = Math.round(t.netCalories);
   const target = targets.calories || 1;
-  const pct = Math.max(0, Math.min(1, current/target));
-  const offset = CIRC - pct*CIRC;
+  const ringGroup = document.getElementById('ring-group');
   const ring = document.getElementById('ring-fill');
+
   ring.style.strokeDasharray = CIRC;
-  // B10: always animate from 12 o'clock
-  ring.style.transition = 'none';
-  ring.style.strokeDashoffset = CIRC;
-  requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ ring.style.transition = ''; ring.style.strokeDashoffset = offset; }); });
-  // B4: red if over target, blue (out cal color) if under
-  if(current > target) ring.style.stroke = 'var(--danger)';
-  else if(current > 0) ring.style.stroke = 'var(--carbs)';
-  else ring.style.stroke = '#262B33';
+
+  // B15: negative net → counter-clockwise green
+  if(current <= 0){
+    const absPct = Math.min(1, Math.abs(current) / target);
+    const offset = CIRC - absPct * CIRC;
+    ringGroup.setAttribute('transform', 'scale(-1,1) translate(-150,0)');
+    ring.style.transition = 'none';
+    ring.style.strokeDashoffset = CIRC;
+    requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ ring.style.transition = ''; ring.style.strokeDashoffset = offset; }); });
+    ring.style.stroke = 'var(--protein)';
+  } else {
+    ringGroup.removeAttribute('transform');
+    const pct = Math.min(1, current / target);
+    const offset = CIRC - pct * CIRC;
+    ring.style.transition = 'none';
+    ring.style.strokeDashoffset = CIRC;
+    requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ ring.style.transition = ''; ring.style.strokeDashoffset = offset; }); });
+    if(current > target) ring.style.stroke = 'var(--danger)';
+    else ring.style.stroke = 'var(--carbs)';
+  }
 
   // B5: show % in ring center when unit toggle is pct
   if(state.unit === 'pct'){
@@ -742,8 +778,25 @@ document.getElementById('gear-btn').addEventListener('click', async ()=>{
   document.getElementById('in-protein').value = targets.protein || '';
   document.getElementById('in-carbs').value = targets.carbs || '';
   document.getElementById('in-fat').value = targets.fat || '';
+  // B14: pre-calc calories if nutrient targets exist
+  if(targets.protein || targets.carbs || targets.fat){
+    settingsCalcCalories();
+  }
 });
 document.getElementById('settings-back').addEventListener('click', ()=> settingsView.classList.remove('open'));
+
+
+/* B14: auto-calc calories in settings from nutrients */
+const settingsNutrientIds = ['in-protein','in-carbs','in-fat'];
+function settingsCalcCalories(){
+  const p = Number(document.getElementById('in-protein').value)||0;
+  const c = Number(document.getElementById('in-carbs').value)||0;
+  const f = Number(document.getElementById('in-fat').value)||0;
+  document.getElementById('in-calories').value = Math.round(p*4 + c*4 + f*9);
+}
+settingsNutrientIds.forEach(id=>{
+  document.getElementById(id).addEventListener('input', settingsCalcCalories);
+});
 
 document.getElementById('save-target-btn').addEventListener('click', async ()=>{
   const btn = document.getElementById('save-target-btn');
