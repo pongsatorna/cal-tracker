@@ -288,8 +288,10 @@
           </defs>
           <circle cx="75" cy="75" r="64" fill="none" stroke="#262B33" stroke-width="12"/>
           <g id="tick-group"></g>
-          <circle id="ring-fill" cx="75" cy="75" r="64" fill="none" stroke="url(#ringGrad)"
-            stroke-width="12" stroke-linecap="round" stroke-dasharray="402"/>
+          <g id="ring-group">
+            <circle id="ring-fill" cx="75" cy="75" r="64" fill="none" stroke="url(#ringGrad)"
+              stroke-width="12" stroke-linecap="round" stroke-dasharray="402"/>
+          </g>
         </svg>
         <div class="ring-center">
           <div class="big mono" id="cal-current">0</div>
@@ -594,6 +596,7 @@ function renderRing(){
   const targets = state.dayData.targets;
   const current = Math.round(t.netCalories);
   const target = targets.calories || 1;
+  const ringGroup = document.getElementById('ring-group');
   const ring = document.getElementById('ring-fill');
 
   ring.style.strokeDasharray = CIRC;
@@ -601,14 +604,15 @@ function renderRing(){
   // B15: negative net → counter-clockwise green from 12 o'clock
   if(current <= 0){
     const absPct = Math.min(1, Math.abs(current) / target);
-    // offset 0→CIRC reveals stroke counter-clockwise from 12 o'clock
-    const offset = absPct * CIRC;
+    const offset = CIRC - absPct * CIRC;
+    // Mirror ring-group horizontally so stroke fills counter-clockwise
+    ringGroup.setAttribute('transform', 'scale(-1,1) translate(-150,0)');
     ring.style.transition = 'none';
-    ring.style.strokeDashoffset = 0;
+    ring.style.strokeDashoffset = CIRC;
     requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ ring.style.transition = ''; ring.style.strokeDashoffset = offset; }); });
     ring.style.stroke = 'var(--protein)';
   } else {
-    // clockwise from 12 o'clock (offset goes from CIRC toward 0)
+    ringGroup.removeAttribute('transform');
     const pct = Math.min(1, current / target);
     const offset = CIRC - pct * CIRC;
     ring.style.transition = 'none';
