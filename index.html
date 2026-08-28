@@ -516,12 +516,15 @@ async function init(){
   setTimeout(()=> splash.style.display='none', 500);
 }
 
+let currentLoadId = 0;
+let debounceTimer = null;
+
 async function loadDay(dateStr){
   state.selectedDate = dateStr;
   renderWeekStrip();
   renderHeader();
   const el = document.getElementById('log-list');
-  // B9+B12: show ring-card skeleton, hide real ring
+  // B9+B12: show ring-card skeleton, hide real ring immediately on tap
   document.getElementById('ring-card-skeleton').style.display = '';
   document.getElementById('ring-section').style.display = 'none';
   el.innerHTML = '<div style="padding:6px 14px">' +
@@ -529,29 +532,38 @@ async function loadDay(dateStr){
     '<div class="skel-log"><div class="skel skel-icon"></div><div class="skel-lines"><div class="skel skel-line w60"></div><div class="skel skel-line w40"></div></div><div class="skel" style="width:40px;height:12px;border-radius:6px"></div></div>' +
     '<div class="skel-log"><div class="skel skel-icon"></div><div class="skel-lines"><div class="skel skel-line w60"></div><div class="skel skel-line w40"></div></div><div class="skel" style="width:40px;height:12px;border-radius:6px"></div></div>' +
     '</div>';
-  try{
-    const data = await api({ action:'data', date: dateStr });
-    state.dayData = data;
-    // B9: hide skeleton, show real ring
-    document.getElementById('ring-card-skeleton').style.display = 'none';
-    document.getElementById('ring-section').style.display = '';
-    renderRing();
-    renderMacros();
-    renderLogList();
-  }catch(e){
-    console.error('day data fetch failed:', e);
-    let msg = 'Could not load. ';
-    if (String(e.message).startsWith('API: unauthorized')) {
-      msg += 'Your token was rejected — double check it matches TOKEN in code.gs.';
-    } else if (String(e.message).startsWith('NETWORK_OR_CORS')) {
-      msg += 'Request was blocked (often CORS or an offline/expired deployment) — check the browser console for details.';
-    } else {
-      msg += 'See browser console for details (' + e.message + ').';
+
+  if (debounceTimer) clearTimeout(debounceTimer);
+
+  debounceTimer = setTimeout(async () => {
+    const loadId = ++currentLoadId;
+    try{
+      const data = await api({ action:'data', date: dateStr });
+      if (loadId !== currentLoadId) return; // Stale guard: user switched dates mid-flight
+
+      state.dayData = data;
+      // B9: hide skeleton, show real ring
+      document.getElementById('ring-card-skeleton').style.display = 'none';
+      document.getElementById('ring-section').style.display = '';
+      renderRing();
+      renderMacros();
+      renderLogList();
+    }catch(e){
+      if (loadId !== currentLoadId) return; // Ignore errors from obsolete requests
+      console.error('day data fetch failed:', e);
+      let msg = 'Could not load. ';
+      if (String(e.message).startsWith('API: unauthorized')) {
+        msg += 'Your token was rejected — double check it matches TOKEN in code.gs.';
+      } else if (String(e.message).startsWith('NETWORK_OR_CORS')) {
+        msg += 'Request was blocked (often CORS or an offline/expired deployment) — check the browser console for details.';
+      } else {
+        msg += 'See browser console for details (' + e.message + ').';
+      }
+      el.innerHTML = '<div class="empty-state">' + msg + '</div>';
+      document.getElementById('ring-card-skeleton').style.display = 'none';
+      document.getElementById('ring-section').style.display = '';
     }
-    el.innerHTML = '<div class="empty-state">' + msg + '</div>';
-    document.getElementById('ring-card-skeleton').style.display = 'none';
-    document.getElementById('ring-section').style.display = '';
-  }
+  }, 200);
 }
 
 /* ============ HEADER ============ */
