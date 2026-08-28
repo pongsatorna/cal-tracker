@@ -391,11 +391,16 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
       <h1>Set target</h1>
+      <div class="unit-toggle" id="target-unit-toggle" style="margin-left:auto;">
+        <button type="button" class="active" id="target-unit-g">G</button>
+        <button type="button" id="target-unit-pct">%</button>
+      </div>
     </div>
     <div class="field"><label>Calories (kcal)</label><input type="number" id="in-calories"></div>
-    <div class="field"><label>Protein (g)</label><input type="number" id="in-protein"></div>
-    <div class="field"><label>Carbs (g)</label><input type="number" id="in-carbs"></div>
-    <div class="field"><label>Fat (g)</label><input type="number" id="in-fat"></div>
+    <div class="field"><label id="lbl-protein">Protein (g)</label><input type="number" id="in-protein"></div>
+    <div class="field"><label id="lbl-carbs">Carbs (g)</label><input type="number" id="in-carbs"></div>
+    <div class="field"><label id="lbl-fat">Fat (g)</label><input type="number" id="in-fat"></div>
+    <div id="target-pct-sum" style="display:none; font-size:12px; color:var(--text-muted); margin-bottom:12px; text-align:right;">Total: 100%</div>
     <button class="save-btn" id="save-target-btn">Save target</button>
     <div class="save-msg" id="save-msg"></div>
   </div>
@@ -784,8 +789,70 @@ function renderMonth(){
 
 /* ============ SETTINGS ============ */
 const settingsView = document.getElementById('settings-view');
+let targetUnit = 'g'; // 'g' or 'pct'
+
+function setTargetUnitMode(unit){
+  const cal = Number(document.getElementById('in-calories').value) || 0;
+  const pVal = Number(document.getElementById('in-protein').value) || 0;
+  const cVal = Number(document.getElementById('in-carbs').value) || 0;
+  const fVal = Number(document.getElementById('in-fat').value) || 0;
+
+  if (targetUnit === unit) return;
+
+  if (unit === 'pct'){
+    // Convert current grams to % of calories
+    if (cal > 0){
+      document.getElementById('in-protein').value = Math.round((pVal * 4 / cal) * 100);
+      document.getElementById('in-carbs').value = Math.round((cVal * 4 / cal) * 100);
+      document.getElementById('in-fat').value = Math.round((fVal * 9 / cal) * 100);
+    }
+    document.getElementById('lbl-protein').textContent = 'Protein (%)';
+    document.getElementById('lbl-carbs').textContent = 'Carbs (%)';
+    document.getElementById('lbl-fat').textContent = 'Fat (%)';
+    document.getElementById('target-unit-g').classList.remove('active');
+    document.getElementById('target-unit-pct').classList.add('active');
+    document.getElementById('target-pct-sum').style.display = '';
+    updateTargetPctSum();
+  } else {
+    // Convert current % to grams based on calories
+    if (cal > 0){
+      document.getElementById('in-protein').value = Math.round((cal * (pVal / 100)) / 4);
+      document.getElementById('in-carbs').value = Math.round((cal * (cVal / 100)) / 4);
+      document.getElementById('in-fat').value = Math.round((cal * (fVal / 100)) / 9);
+    }
+    document.getElementById('lbl-protein').textContent = 'Protein (g)';
+    document.getElementById('lbl-carbs').textContent = 'Carbs (g)';
+    document.getElementById('lbl-fat').textContent = 'Fat (g)';
+    document.getElementById('target-unit-pct').classList.remove('active');
+    document.getElementById('target-unit-g').classList.add('active');
+    document.getElementById('target-pct-sum').style.display = 'none';
+  }
+  targetUnit = unit;
+}
+
+function updateTargetPctSum(){
+  if (targetUnit !== 'pct') return;
+  const p = Number(document.getElementById('in-protein').value) || 0;
+  const c = Number(document.getElementById('in-carbs').value) || 0;
+  const f = Number(document.getElementById('in-fat').value) || 0;
+  const total = p + c + f;
+  const el = document.getElementById('target-pct-sum');
+  el.textContent = `Total: ${total}%`;
+  el.style.color = total === 100 ? 'var(--protein)' : 'var(--text-muted)';
+}
+
+document.getElementById('target-unit-g').addEventListener('click', ()=> setTargetUnitMode('g'));
+document.getElementById('target-unit-pct').addEventListener('click', ()=> setTargetUnitMode('pct'));
+
 document.getElementById('gear-btn').addEventListener('click', async ()=>{
   settingsView.classList.add('open');
+  targetUnit = 'g';
+  document.getElementById('lbl-protein').textContent = 'Protein (g)';
+  document.getElementById('lbl-carbs').textContent = 'Carbs (g)';
+  document.getElementById('lbl-fat').textContent = 'Fat (g)';
+  document.getElementById('target-unit-g').classList.add('active');
+  document.getElementById('target-unit-pct').classList.remove('active');
+  document.getElementById('target-pct-sum').style.display = 'none';
   const targets = (state.dayData && state.dayData.targets) || {};
   document.getElementById('in-calories').value = targets.calories || '';
   document.getElementById('in-protein').value = targets.protein || '';
@@ -802,6 +869,10 @@ document.getElementById('settings-back').addEventListener('click', ()=> settings
 /* B14: auto-calc calories in settings from nutrients */
 const settingsNutrientIds = ['in-protein','in-carbs','in-fat'];
 function settingsCalcCalories(){
+  if (targetUnit === 'pct'){
+    updateTargetPctSum();
+    return;
+  }
   const p = Number(document.getElementById('in-protein').value)||0;
   const c = Number(document.getElementById('in-carbs').value)||0;
   const f = Number(document.getElementById('in-fat').value)||0;
@@ -814,13 +885,25 @@ settingsNutrientIds.forEach(id=>{
 document.getElementById('save-target-btn').addEventListener('click', async ()=>{
   const btn = document.getElementById('save-target-btn');
   btn.disabled = true; btn.textContent = 'Saving…';
+
+  let cal = Number(document.getElementById('in-calories').value) || 0;
+  let p = Number(document.getElementById('in-protein').value) || 0;
+  let c = Number(document.getElementById('in-carbs').value) || 0;
+  let f = Number(document.getElementById('in-fat').value) || 0;
+
+  if (targetUnit === 'pct' && cal > 0){
+    p = Math.round((cal * (p / 100)) / 4);
+    c = Math.round((cal * (c / 100)) / 4);
+    f = Math.round((cal * (f / 100)) / 9);
+  }
+
   try{
     const res = await api({
       action: 'saveTarget',
-      calories: document.getElementById('in-calories').value,
-      protein: document.getElementById('in-protein').value,
-      carbs: document.getElementById('in-carbs').value,
-      fat: document.getElementById('in-fat').value
+      calories: cal,
+      protein: p,
+      carbs: c,
+      fat: f
     });
     if(res.success){
       document.getElementById('save-msg').textContent = 'Saved.';
